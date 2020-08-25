@@ -1,56 +1,25 @@
-name: 'Smoke tests onexstore'
-
 trigger:
-- master
+  paths:
+    include:
+      - '*'
 
 pool:
-  vmImage: 'ubuntu-16.04'
+  vmImage: 'ubuntu-latest'
 
 steps:
-    -task: NodeTool@0
-     inputs:
-        versionSpec: '12.x'
-     displayName: 'Install Node.js'
+- task: NodeTool@0
+  inputs:
+    versionSpec: '10.x'
+  displayName: 'Install Node.js'
 
- - task: CacheBeta@1
-   inputs:
-        key: npm | $(Agent.OS) | package-lock.json
-        path: /home/vsts/.npm
-        restoreKeys: npm | $(Agent.OS) | package-lock.json
-   displayName: Cache NPM Packages
- - task: CacheBeta@1
-   inputs:
-        key: cypress | $(Agent.OS) | package-lock.json
-        path: /home/vsts/.cache/Cypress
-        restoreKeys: cypress | $(Agent.OS) | package-lock.json
-   displayName: Cache Cypress binary
+- script:
+    npm install
+  displayName: 'Install dependecies'  
 
-  - script: |
-      npm install
-      npm run build
-    displayName: 'npm install and build'
+- script:
+    npm run cy:verify
+  displayName: 'Cypress verify'
 
-  - script: npm run cy:verify
-    displayName: 'Cypress Verify'
-
-  - script: |
-      npx print-env AGENT
-      npx print-env BUILD
-      npx print-env SYSTEM
-      npm run start & npm run cy:run
-    displayName: 'Run Cypress tests'
-  env:
-    # avoid warnings about terminal
-    TERM: xterm
-
-  - task: PublishTestResults@2
-    condition: succeededOrFailed()
-    inputs:
-      testRunner: JUnit
-      testResultsFiles: '$(Build.SourcesDirectory)/test/results/*.xml'
-
-  - task: PublishBuildArtifacts@1
-    inputs:
-      PathtoPublish: '$(Build.SourcesDirectory)/build'
-      ArtifactName: 'drop'
-      publishLocation: 'Container'
+- script:
+    npm run cy:run
+  displayName: 'Execute cypress tests'
